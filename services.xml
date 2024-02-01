@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<services>
+    <service>
+        <ID>1</ID>
+        <ServiceName>Harambee Members Portal</ServiceName>
+        <ServiceHost>selfservice.harambeesacco.com</ServiceHost>
+        <ServicePort>443</ServicePort>
+        <ServiceResourceURI>/</ServiceResourceURI>
+        <ServiceMethod>GET</ServiceMethod>
+        <ExpectedTelnetResponse>Connected to selfservice.harambeesacco.com.</ExpectedTelnetResponse>
+        <ExpectedRequestResponse>Welcome to Harambee Sacco Society Ltd Members' Portal</ExpectedRequestResponse>
+        <Protocol>https</Protocol>
+        <MonitoringIntervals>6</MonitoringIntervals>
+        <MonitoringIntervalsTimeUnit>seconds</MonitoringIntervalsTimeUnit>
+        <EnableFileLogging>yes</EnableFileLogging>
+        <FileLoggingInterval>Hourly</FileLoggingInterval>
+        <EnableLogsArchiving>yes</EnableLogsArchiving>
+        <LogArchivingIntervals>Hourly</LogArchivingIntervals>
+        <LastLogTime>20240108_170606</LastLogTime>
+        <LastArchiveTime/>
+    </service>
+    <service>
+        <ID>2</ID>
+        <ServiceName>Sky World Services Portal</ServiceName>
+        <ServiceHost>portal.skyworld.co.ke</ServiceHost>
+        <ServicePort>443</ServicePort>
+        <ServiceResourceURI>/</ServiceResourceURI>
+        <ServiceMethod>GET</ServiceMethod>
+        <ExpectedTelnetResponse>Connected to portal.skyworld.co.ke.</ExpectedTelnetResponse>
+        <ExpectedRequestResponse>Welcome to Sky World Limited Services Hub</ExpectedRequestResponse>
+        <Protocol>https</Protocol>
+        <MonitoringIntervals>10</MonitoringIntervals>
+        <MonitoringIntervalsTimeUnit>seconds</MonitoringIntervalsTimeUnit>
+        <EnableFileLogging>yes</EnableFileLogging>
+        <FileLoggingInterval>Daily</FileLoggingInterval>
+        <EnableLogsArchiving>no</EnableLogsArchiving>
+        <LogArchivingIntervals>Daily</LogArchivingIntervals>
+        <LastLogTime>20240108_170601</LastLogTime>
+        <LastArchiveTime/>
+    </service>
+    <service>
+        <ID>3</ID>
+        <ServiceName>Enum portal</ServiceName>
+        <ServiceHost>localhost</ServiceHost>
+        <ServicePort>3001</ServicePort>
+        <ServiceResourceURI>/</ServiceResourceURI>
+        <ServiceMethod>GET</ServiceMethod>
+        <ExpectedTelnetResponse>connected to enum portal</ExpectedTelnetResponse>
+        <ExpectedRequestResponse>welcome to enum</ExpectedRequestResponse>
+        <Protocol>https</Protocol>
+        <MonitoringIntervals>3</MonitoringIntervals>
+        <MonitoringIntervalsTimeUnit>seconds</MonitoringIntervalsTimeUnit>
+        <EnableFileLogging>no</EnableFileLogging>
+        <FileLoggingInterval>Weekly</FileLoggingInterval>
+        <EnableLogsArchiving>no</EnableLogsArchiving>
+        <LogArchivingIntervals>Weekly</LogArchivingIntervals>
+        <LastLogTime/>
+        <LastArchiveTime/>
+    </service>
+    <service>
+        <ID>4</ID>
+        <ServiceName>Division D</ServiceName>
+        <ServiceHost>divisiond.district114.org</ServiceHost>
+        <ServicePort>443</ServicePort>
+        <ServiceResourceURI>/</ServiceResourceURI>
+        <ServiceMethod>GET</ServiceMethod>
+        <ExpectedTelnetResponse>Connected to divisiond.district114.org</ExpectedTelnetResponse>
+        <ExpectedRequestResponse>Welcome to Services Hub</ExpectedRequestResponse>
+        <Protocol>https</Protocol>
+        <MonitoringIntervals>10</MonitoringIntervals>
+        <MonitoringIntervalsTimeUnit>seconds</MonitoringIntervalsTimeUnit>
+        <EnableFileLogging>no</EnableFileLogging>
+        <FileLoggingInterval>Daily</FileLoggingInterval>
+        <EnableLogsArchiving>no</EnableLogsArchiving>
+        <LogArchivingIntervals>Daily</LogArchivingIntervals>
+        <LastLogTime/>
+        <LastArchiveTime/>
+    </service>
+</services>

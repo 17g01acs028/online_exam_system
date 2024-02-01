@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><database>
+    <ID>1</ID>
+    <Database_Type>postgresql</Database_Type>
+    <Database_Name>online_exam_system</Database_Name>
+    <Host>172.20.94.26</Host>
+    <Username encrypted="yes">Xg0Ed9pi7IORAwfVAYU6iA==</Username>
+    <Port>5432</Port>
+    <Password encrypted="yes">lJvZXX8n/6omUJk3cxfwdAHg5WV0MdF0qqFr1Y8q0Ow=</Password>
+</database>
