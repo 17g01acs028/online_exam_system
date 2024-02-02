@@ -4,6 +4,7 @@ import org.example.controllers.Exam;
 import org.example.libs.Response;
 import org.example.model.DatabaseConnection;
 import org.example.reports.ExamReport;
+import org.example.reports.StudentReport;
 
 import java.sql.Connection;
 
@@ -19,8 +20,11 @@ public class Main{
                 DatabaseConnection connection = new DatabaseConnection("config/"+checker.getMessage());
                 Connection conn = connection.getConnection();
                 //System.out.println(Exam.Find(conn));
-                System.out.println(Exam.FindById(conn,1));
+              //  System.out.println(Exam.FindById(conn,1));
               //  System.out.println(ExamReport.teacherExam(conn,21));
+
+                new StudentReport(conn,connection.databaseType,1);
+
             }else{
                 System.out.println(checker.getMessage());
             }

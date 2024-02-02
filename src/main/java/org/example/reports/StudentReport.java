@@ -13,22 +13,19 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.example.libs.ConfigFileChecker.configFileChecker;
 
 public class StudentReport {
     public static String fileName;
    public static String type ;
-    public StudentReport(Connection conn, String typez) {
+
+    public StudentReport(Connection conn, String database_type, long ExamId) {
         Response checker = configFileChecker("config", fileName);
-        DatabaseConnection connection3 = new DatabaseConnection("config/" + checker.getMessage());
-        type = typez;
-        try (Connection connection = connection3.getConnection()) {
-            long examId = 1; // Replace with the desired exam ID
+        type = database_type;
+        try (Connection connection = conn) {
+            long examId =  ExamId; // Replace with the desired exam ID
             String query = generateDynamicSubjectMarksQuery(examId);
 
             try (PreparedStatement statement = connection.prepareStatement(query)) {
@@ -70,7 +67,7 @@ public class StudentReport {
                                 "Subject Id " + subjectId);
                     }
                     System.out.print(classStudentMap);
-                    generateExcelSheets(classStudentMap,connection);
+                    generateExcelSheets(classStudentMap,connection,examId);
                 }
             }
         } catch (Exception e) {
@@ -78,98 +75,121 @@ public class StudentReport {
         }
     }
 
-    private static void generateExcelSheets(Map<Integer, Map<Integer, List<StudentMerit>>> classStudentMap, Connection conn) {
-        Workbook workbook = new XSSFWorkbook();
+    public static Map<Long, Integer> getSubjectMarks(long examId) throws Exception {
+        String sql = generateOverallSubjectMarks(examId);
+        Response checker = configFileChecker("config",fileName);
+        DatabaseConnection connection;
+        if(checker.getStatus()){
+            connection = new DatabaseConnection("config/"+checker.getMessage());
 
-        // Fetch all subjects from the database and store them in a data structure
-        Map<Integer, String> subjectMap = fetchSubjectsFromDatabase(conn);
-
-        // Iterate over classStudentMap
-        for (Map.Entry<Integer, Map<Integer, List<StudentMerit>>> classEntry : classStudentMap.entrySet()) {
-            int classId = classEntry.getKey();
-            Map<Integer, List<StudentMerit>> studentMap = classEntry.getValue();
-
-            Sheet sheet = workbook.createSheet("Class " + classId + " Merit");
-
-            // Create headers for the sheet
-            Row headerRow = sheet.createRow(0);
-            headerRow.createCell(0).setCellValue("Student ID");
-            headerRow.createCell(1).setCellValue("Student Name");
-
-            // Add subject columns
-            int columnIndex = 2;
-            for (Map.Entry<Integer, String> subjectEntry : subjectMap.entrySet()) {
-                headerRow.createCell(columnIndex).setCellValue( subjectEntry.getValue());
-                columnIndex++;
+            Map<Long, Integer> subjectMarks = new HashMap<>();
+            try (Connection conn = connection.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setLong(1, examId);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    long subjectId = rs.getLong("subject_id");
+                    int marks = rs.getInt("Marks");
+                    subjectMarks.put(subjectId, marks);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
+            System.out.println(subjectMarks);
+            return subjectMarks;
+        }else{
+            System.out.println(checker.getMessage());
+        }
+        return null;
+    }
 
-            headerRow.createCell(columnIndex).setCellValue("Total");
-            headerRow.createCell(columnIndex + 1).setCellValue("Position");
 
-            int rowNum = 1; // Start from row 1 (after headers)
+    private static void generateExcelSheets(Map<Integer, Map<Integer, List<StudentMerit>>> classStudentMap, Connection conn, long ExamId) throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        Map<Integer, String> subjectMap = fetchSubjectsFromDatabase(conn); // Assumed to be implemented
+
+        for (Map.Entry<Integer, Map<Integer, List<StudentMerit>>> classEntry : classStudentMap.entrySet()) {
+            Sheet sheet = workbook.createSheet("Class " + classEntry.getKey() + " Merit");
+            createHeaderRow(sheet, subjectMap);
+
+            // Aggregating total marks per student and preparing data for subject marks
+            Map<Integer, Integer> totalMarksPerStudent = new HashMap<>();
+            Map<Integer, Map<Integer, Integer>> subjectMarksPerStudent = new HashMap<>(); // New structure to hold subject marks per student
+
+            classEntry.getValue().forEach((studentId, studentMerits) -> {
+                int totalMarks = 0; //studentMerits.stream().mapToInt(StudentMerit::getMarks).sum();
 
 
-
-            // Iterate over students in this class
-            int no =1;
-            for (Map.Entry<Integer, List<StudentMerit>> studentEntry : studentMap.entrySet()) {
-                List<StudentMerit> studentRecords = studentEntry.getValue();
-
-                // Create a row for the student
-                Row dataRow = sheet.createRow(rowNum++);
-                dataRow.createCell(0).setCellValue(no);
-
-                // Set the student's name
-                dataRow.createCell(1).setCellValue(studentRecords.get(0).getName()); // Set the student's name
-
-                // Calculate total marks for the student
-                int totalMarks = 0;
-
-                // Create a map to store marks for each subject
-                Map<Integer, Integer> subjectMarksMap = new HashMap<>();
-
-                // Iterate over student records (for different subjects)
-                for (StudentMerit studentRecord : studentRecords) {
-
-                    int subjectId = studentRecord.getSubjectId();
-                    int marks = studentRecord.getMarks();
-                    System.out.println("subject_id "+subjectId + " Marks "+marks);
-                    subjectMarksMap.put(subjectId, marks);
-                    totalMarks += marks;
-                }
-
-                // Add subject marks to the corresponding columns
-                columnIndex = 2;
-                for (Integer subjectId : subjectMap.keySet()) {
-                    if (subjectMarksMap.containsKey(subjectId)) {
-                        dataRow.createCell(columnIndex).setCellValue(subjectMarksMap.get(subjectId));
-                    } else {
-                        dataRow.createCell(columnIndex).setCellValue("");
+                // Prepare subject marks map for each student
+                Map<Integer, Integer> marks = new HashMap<>();
+                for (StudentMerit merit : studentMerits) {
+                    Map<Long, Integer> subjectMarks = null;
+                    try {
+                        subjectMarks = getSubjectMarks(ExamId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
-                    columnIndex++;
+
+                    assert subjectMarks != null;
+                    System.out.println(merit.getMarks());
+                    double total =  (((double) merit.getMarks() /subjectMarks.get((long) merit.getSubjectId())))*100;
+                    int  marksz = (int) total;
+                    totalMarks+=marksz;
+                    marks.put(merit.getSubjectId(), marksz);
+                }
+                totalMarksPerStudent.put(studentId, totalMarks);
+                subjectMarksPerStudent.put(studentId, marks);
+            });
+
+            // Sorting students by total marks in descending order
+            List<Map.Entry<Integer, Integer>> sortedEntries = new ArrayList<>(totalMarksPerStudent.entrySet());
+            sortedEntries.sort(Map.Entry.<Integer, Integer>comparingByValue().reversed());
+
+            // Creating rows for each student based on sorted total marks
+            int rowNum = 1;
+            for (Map.Entry<Integer, Integer> entry : sortedEntries) {
+                Integer studentId = entry.getKey();
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(rowNum-1);
+                row.createCell(1).setCellValue(classEntry.getValue().get(studentId).get(0).getName());
+                int cellIndex = 2;
+
+                // Fill in subject marks
+                Map<Integer, Integer> studentMarks = subjectMarksPerStudent.get(studentId);
+                for (Integer subjectId : subjectMap.keySet()) {
+                    if (studentMarks.containsKey(subjectId)) {
+                        row.createCell(cellIndex).setCellValue(studentMarks.get(subjectId));
+                    } else {
+                        row.createCell(cellIndex).setCellValue(0); // or leave blank if preferred
+                    }
+                    cellIndex++;
                 }
 
-                // Add total marks and position
-                dataRow.createCell(columnIndex).setCellValue(totalMarks);
-
-                // Increment the position for each student
-                int position = rowNum - 1;
-                dataRow.createCell(columnIndex + 1).setCellValue(position);
-                no++;
+                row.createCell(cellIndex).setCellValue(entry.getValue()); // Total marks
+                row.createCell(cellIndex + 1).setCellValue(rowNum - 1); // Position
             }
         }
 
-        try (FileOutputStream outputStream = new FileOutputStream("MeritReport.xlsx")) {
+        // Write the workbook to a file
+        try (FileOutputStream outputStream = new FileOutputStream("StudentMeritReport.xlsx")) {
             workbook.write(outputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
+    private static void createHeaderRow(Sheet sheet, Map<Integer, String> subjectMap) {
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("NO:");
+        headerRow.createCell(1).setCellValue("Student Name");
+        int columnIndex = 2;
+        for (String subject : subjectMap.values()) {
+            headerRow.createCell(columnIndex++).setCellValue(subject);
+        }
+        headerRow.createCell(columnIndex).setCellValue("Total Marks");
+        headerRow.createCell(columnIndex + 1).setCellValue("Position");
+    }
+
     private static String generateDynamicSubjectMarksQuery(long examId) {
-
-        Response checker = configFileChecker("config",fileName);
-
         StringBuilder queryBuilder = new StringBuilder();
         queryBuilder.append("SELECT ");
         queryBuilder.append("    s.student_id, ");
@@ -206,8 +226,28 @@ public class StudentReport {
         }
         queryBuilder.append("ORDER BY ");
         queryBuilder.append("    s.student_id, sub.subject_id; ");
+        return queryBuilder.toString();
+    }
 
-        System.out.println(queryBuilder.toString());
+    public static String generateOverallSubjectMarks(long examId){
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT ");
+        queryBuilder.append("    sub.subject_id, ");
+        queryBuilder.append("    SUM(q.marks) AS Marks ");
+        queryBuilder.append("FROM ");
+        queryBuilder.append("    questions q ");
+        queryBuilder.append("JOIN ");
+        queryBuilder.append("    exam_schedule es ON q.exam_schedule_id = es.exam_schedule_id ");
+        queryBuilder.append("JOIN ");
+        queryBuilder.append("    subject sub ON es.subject_id = sub.subject_id ");
+        queryBuilder.append("JOIN ");
+        queryBuilder.append("    class c ON es.class_id = c.class_id ");
+        queryBuilder.append("WHERE ");
+        queryBuilder.append("    es.exam_id = ? ");
+        queryBuilder.append("GROUP BY ");
+        queryBuilder.append("    sub.subject_id, c.class_id, es.exam_id, c.class_name, sub.subject_name ");
+        queryBuilder.append("ORDER BY ");
+        queryBuilder.append(" sub.subject_id; ");
         return queryBuilder.toString();
     }
 
